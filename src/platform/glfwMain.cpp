@@ -326,7 +326,8 @@ int main()
 
 	int w = 500;
 	int h = 500;
-	wind = glfwCreateWindow(w, h, "geam", nullptr, nullptr);
+	wind = glfwCreateWindow(w, h, "viewer", nullptr, nullptr);
+	//notwind = glfwCreateWindow(w, h, "closeup", nullptr, nullptr);
 	glfwMakeContextCurrent(wind);
 	glfwSwapInterval(1);
 

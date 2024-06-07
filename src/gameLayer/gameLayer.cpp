@@ -22,8 +22,13 @@ struct GameData
 
 }gameData;
 
+
+
 gl2d::Renderer2D renderer;
 std::list<STLParser::Triangle> triangleList; //if renderer is also a global variable, this is way this repo shares objects between initGame and gameLogic
+STLParser::stlLimits limits{};
+glm::vec4 zoomCords = { 0,0,0,0 };
+bool zoom{ false };
 
 bool initGame()
 {
@@ -35,7 +40,7 @@ bool initGame()
 	platform::readEntireFile(RESOURCES_PATH "gameData.data", &gameData, sizeof(GameData));
 
 
-
+ #pragma region RenderSTL
 
 	//we will save edges to an array incase we want to get rid of some later
 	std::cout << "init" << std::endl;
@@ -125,6 +130,9 @@ bool initGame()
 			STLParser::xyz p3{ initArr[0] , initArr[1] , initArr[2] };
 
 			//triangle
+			STLParser::updateLimits(limits, p1);
+			STLParser::updateLimits(limits, p2);
+			STLParser::updateLimits(limits, p3);
 			STLParser::Triangle triangle(normal, p1, p2, p3);
 			triangleList.insert(triangleList.begin(), triangle);
 			//STLParser::printTriangle(triangleList.front());
@@ -136,6 +144,7 @@ bool initGame()
 		}
 		*/
 	}
+#pragma endregion
 
 
 
@@ -165,18 +174,38 @@ bool gameLogic(float deltaTime)
 	glViewport(0, 0, w, h);
 	glClear(GL_COLOR_BUFFER_BIT); //clear screen
 
+
 	renderer.updateWindowMetrics(w, h);
-
-	double DRAWINGSCALER{ 20.0 };
+	double targetWidth{ w / (limits.maxZ - limits.minZ) };
+	double targetHigth{ h / (limits.maxY - limits.minY) };
+	double DRAWINGSCALER{ min(targetWidth,targetHigth)};//these used to be constexpr
 	double LINEWIDTH{ 0.4 };
-	double YBUFFER{ 200.0 };
-	double ZBUFFER{ 1000.0 };
+	double YBUFFER{ -limits.minY*DRAWINGSCALER };
+	double ZBUFFER{ -limits.minZ*DRAWINGSCALER };
 
-	for (auto const& triangle : triangleList) {
-		renderer.renderLine({ ZBUFFER + triangle.getP1().z * DRAWINGSCALER , h - YBUFFER - triangle.getP1().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP2().z * DRAWINGSCALER, h - YBUFFER - triangle.getP2().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
-		renderer.renderLine({ ZBUFFER + triangle.getP2().z * DRAWINGSCALER , h - YBUFFER - triangle.getP2().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP3().z * DRAWINGSCALER, h - YBUFFER - triangle.getP3().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
-		renderer.renderLine({ ZBUFFER + triangle.getP3().z * DRAWINGSCALER , h - YBUFFER - triangle.getP3().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP1().z * DRAWINGSCALER, h - YBUFFER - triangle.getP1().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
+	if (zoom) {
+		glm::vec4 zoomRemapped = {zoomCords.x/DRAWINGSCALER-ZBUFFER, zoomCords.y / DRAWINGSCALER + YBUFFER - h,
+			zoomCords.x / DRAWINGSCALER - ZBUFFER, zoomCords.y / DRAWINGSCALER + YBUFFER - h };
 
+		targetWidth= w / (zoomRemapped.x-zoomRemapped.z) ;
+		targetHigth= h / (zoomRemapped.y-zoomCords.w) ;
+		DRAWINGSCALER= min(targetWidth,targetHigth) ;
+		YBUFFER= -limits.minY * DRAWINGSCALER ;
+		ZBUFFER= -limits.minZ * DRAWINGSCALER ;
+
+		for (auto const& triangle : triangleList) {
+			renderer.renderLine({ ZBUFFER + triangle.getP1().z * DRAWINGSCALER , h - YBUFFER - triangle.getP1().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP2().z * DRAWINGSCALER, h - YBUFFER - triangle.getP2().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
+			renderer.renderLine({ ZBUFFER + triangle.getP2().z * DRAWINGSCALER , h - YBUFFER - triangle.getP2().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP3().z * DRAWINGSCALER, h - YBUFFER - triangle.getP3().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
+			renderer.renderLine({ ZBUFFER + triangle.getP3().z * DRAWINGSCALER , h - YBUFFER - triangle.getP3().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP1().z * DRAWINGSCALER, h - YBUFFER - triangle.getP1().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
+		}
+	}
+	else {
+
+		for (auto const& triangle : triangleList) {
+			renderer.renderLine({ ZBUFFER + triangle.getP1().z * DRAWINGSCALER , h - YBUFFER - triangle.getP1().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP2().z * DRAWINGSCALER, h - YBUFFER - triangle.getP2().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
+			renderer.renderLine({ ZBUFFER + triangle.getP2().z * DRAWINGSCALER , h - YBUFFER - triangle.getP2().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP3().z * DRAWINGSCALER, h - YBUFFER - triangle.getP3().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
+			renderer.renderLine({ ZBUFFER + triangle.getP3().z * DRAWINGSCALER , h - YBUFFER - triangle.getP3().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP1().z * DRAWINGSCALER, h - YBUFFER - triangle.getP1().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
+		}
 	}
 
 
@@ -199,6 +228,25 @@ bool gameLogic(float deltaTime)
 	if (platform::isButtonHeld(platform::Button::Down))
 	{
 		gameData.rectPos.y += deltaTime * 100;
+	}
+
+	if (platform::isLMousePressed()) {//left mouse can be for first point, etc. Then user does not have to worry about mistakes
+		glm::ivec2 tempvec = platform::getRelMousePosition();
+		zoomCords.x = tempvec.x;
+		zoomCords.y = tempvec.y;//uses xyzw
+		std::cout << zoomCords.x << " " << zoomCords.y << std::endl;
+	}
+	if (platform::isRMousePressed()) {//left mouse can be for first point, etc. Then user does not have to worry about mistakes
+		glm::ivec2 tempvec = platform::getRelMousePosition();
+		zoomCords.z = tempvec.x;
+		zoomCords.w = tempvec.y;//uses xyzw
+		std::cout << zoomCords.z << " " << zoomCords.w << std::endl;
+
+	}
+	if (platform::isButtonTyped(platform::Button::Enter))
+	{
+		std::cout << "zoom" << std::endl;
+		zoom!=zoom;
 	}
 
 	gameData.rectPos = glm::clamp(gameData.rectPos, glm::vec2{ 0,0 }, glm::vec2{ w - 100,h - 100 });

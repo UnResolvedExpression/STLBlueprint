@@ -36,6 +36,37 @@ namespace STLParser {
 		xyz m_p3{};
 	};
 
+	struct stlLimits {
+		double maxX{};//lets keep these here instead of recomputing them.
+		double minX{};
+		double maxY{};
+		double minY{};
+		double maxZ{};
+		double minZ{};
+	};
+
+	void updateLimits(stlLimits& limits,const xyz& point) {
+		//I considered maxval=max(maxval,newval) though that would be double the opperations on average..
+		if (point.x > limits.maxX) {
+			limits.maxX = point.x;
+		}
+		else if (point.x < limits.minX) {
+			limits.minX = point.x;
+		}
+		if (point.y > limits.maxY) {
+			limits.maxY = point.y;
+		}
+		else if (point.y < limits.minY) {
+			limits.minY = point.y;
+		}
+		if (point.z > limits.maxZ) {
+			limits.maxZ = point.z;
+		}
+		else if (point.z < limits.minZ) {
+			limits.minZ = point.z;
+		}
+	}
+
 	void printXYZ(const xyz& triplit) {
 		std::cout << triplit.x << " " << triplit.y << " " << triplit.z << std::endl;
 	}
@@ -50,4 +81,5 @@ namespace STLParser {
 		std::cout << "p3 ";
 		printXYZ(triangle.getP3());
 	}
+
 }

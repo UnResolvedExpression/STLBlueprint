@@ -195,6 +195,7 @@ void characterCallback(GLFWwindow *window, unsigned int codepoint)
 #pragma region platform functions
 
 GLFWwindow *wind = 0;
+GLFWwindow* closeupWind = 0;
 
 namespace platform
 {
@@ -203,6 +204,15 @@ namespace platform
 	{
 		glfwSetCursorPos(wind, x, y);
 	}
+
+	/*glm::vec2 getRelMousePosition()
+	{
+		double *x;
+		double *y;
+		glfwGetCursorPos(wind, x, y);
+		glm::vec2 temp = { *x,*y };
+		return temp;
+	}*/
 
 	bool isFullScreen()
 	{
@@ -326,8 +336,8 @@ int main()
 
 	int w = 500;
 	int h = 500;
+	//closeupWind = glfwCreateWindow(w, h, "closeup", nullptr, nullptr);
 	wind = glfwCreateWindow(w, h, "viewer", nullptr, nullptr);
-	//notwind = glfwCreateWindow(w, h, "closeup", nullptr, nullptr);
 	glfwMakeContextCurrent(wind);
 	glfwSwapInterval(1);
 
@@ -337,6 +347,18 @@ int main()
 	glfwSetWindowSizeCallback(wind, windowSizeCallback);
 	glfwSetCursorPosCallback(wind, cursorPositionCallback);
 	glfwSetCharCallback(wind, characterCallback);
+	
+
+	////glfwWindowHint(GLFW_DECORATED, NULL); // Remove the border and titlebar..  
+	//glfwGetWindowPos(wind, &w, &h);
+	////auto monitor = glfwGetPrimaryMonitor();
+	//auto monitor = getCurrentMonitor(wind);
+	//const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+	//// switch to full screen
+	//glfwSetWindowMonitor(wind, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+	//currentFullScreen = 1;
+
+
 
 	//permaAssertComment(gladLoadGL(), "err initializing glad");
 	permaAssertComment(gladLoadGLLoader((GLADloadproc)glfwGetProcAddress), "err initializing glad");

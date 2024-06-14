@@ -29,6 +29,7 @@ std::list<STLParser::Triangle> triangleList; //if renderer is also a global vari
 STLParser::stlLimits limits{};
 glm::vec4 zoomCords = { 0,0,0,0 };
 bool zoom{ false };
+bool sceneChange{ true };
 
 bool initGame()
 {
@@ -172,41 +173,68 @@ bool gameLogic(float deltaTime)
 	h = platform::getFrameBufferSizeY(); //window h
 
 	glViewport(0, 0, w, h);
-	glClear(GL_COLOR_BUFFER_BIT); //clear screen
 
+	if (sceneChange) {
+		glClear(GL_COLOR_BUFFER_BIT); //clear screen
+		renderer.updateWindowMetrics(w, h);
+		double targetWidth{ w / (limits.maxZ - limits.minZ) };
+		double targetHigth{ h / (limits.maxY - limits.minY) };
+		double DRAWINGSCALER{ min(targetWidth,targetHigth) };//these used to be constexpr
+		double LINEWIDTH{ 0.4 };
+		double YBUFFER{ -limits.minY * DRAWINGSCALER };
+		double ZBUFFER{ -limits.minZ * DRAWINGSCALER };
+		std::cout << "sceneChange" << std::endl;
 
-	renderer.updateWindowMetrics(w, h);
-	double targetWidth{ w / (limits.maxZ - limits.minZ) };
-	double targetHigth{ h / (limits.maxY - limits.minY) };
-	double DRAWINGSCALER{ min(targetWidth,targetHigth)};//these used to be constexpr
-	double LINEWIDTH{ 0.4 };
-	double YBUFFER{ -limits.minY*DRAWINGSCALER };
-	double ZBUFFER{ -limits.minZ*DRAWINGSCALER };
+		std::cout << "YBUFFER " << YBUFFER << std::endl;
+		std::cout << "ZBUFFER " << ZBUFFER << std::endl;
+		std::cout << std::boolalpha << zoom << std::endl;
+		if (zoom) {
+			std::cout << "zoominside" << std::endl;
+			//std::cout << "zoomRemaped " << zoomCords.x << " " << zoomCords.y << " " << zoomRemapped.z << " " << zoomRemapped.w << " " << std::endl;
 
-	if (zoom) {
-		glm::vec4 zoomRemapped = {zoomCords.x/DRAWINGSCALER-ZBUFFER, zoomCords.y / DRAWINGSCALER + YBUFFER - h,
-			zoomCords.x / DRAWINGSCALER - ZBUFFER, zoomCords.y / DRAWINGSCALER + YBUFFER - h };
+			/*glm::vec4 zoomRemapped = {zoomCords.x / DRAWINGSCALER + limits.minZ, zoomCords.y / DRAWINGSCALER - limits.minY - h / DRAWINGSCALER,
+				zoomCords.z / DRAWINGSCALER + limits.minZ, zoomCords.w / DRAWINGSCALER - limits.minY - h/ DRAWINGSCALER };
+			*/
+			glm::vec4 zoomRemapped = { (zoomCords.x -ZBUFFER)/DRAWINGSCALER, (zoomCords.y -h + YBUFFER) / DRAWINGSCALER,
+				(zoomCords.z -ZBUFFER)/DRAWINGSCALER, (zoomCords.w -h +YBUFFER) / DRAWINGSCALER};
+			
+			/*we draw onto the screen by zbuffer+ point * Scale
+			* and h - ybuffer - point *scale
+			* the mapping back seems correct
 
-		targetWidth= w / (zoomRemapped.x-zoomRemapped.z) ;
-		targetHigth= h / (zoomRemapped.y-zoomCords.w) ;
-		DRAWINGSCALER= min(targetWidth,targetHigth) ;
-		YBUFFER= -limits.minY * DRAWINGSCALER ;
-		ZBUFFER= -limits.minZ * DRAWINGSCALER ;
+			*/
+			std::cout << "zoomRemaped " << zoomRemapped.x << " " << zoomRemapped.y << " " << zoomRemapped.z << " " << zoomRemapped.w << " " << std::endl;
 
-		for (auto const& triangle : triangleList) {
-			renderer.renderLine({ ZBUFFER + triangle.getP1().z * DRAWINGSCALER , h - YBUFFER - triangle.getP1().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP2().z * DRAWINGSCALER, h - YBUFFER - triangle.getP2().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
-			renderer.renderLine({ ZBUFFER + triangle.getP2().z * DRAWINGSCALER , h - YBUFFER - triangle.getP2().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP3().z * DRAWINGSCALER, h - YBUFFER - triangle.getP3().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
-			renderer.renderLine({ ZBUFFER + triangle.getP3().z * DRAWINGSCALER , h - YBUFFER - triangle.getP3().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP1().z * DRAWINGSCALER, h - YBUFFER - triangle.getP1().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
+			targetWidth = w / (zoomRemapped.x - zoomRemapped.z);
+			targetHigth = h / (zoomRemapped.y - zoomRemapped.w);
+			DRAWINGSCALER = min(abs(targetWidth),abs(targetHigth));
+			ZBUFFER = -zoomRemapped.x * DRAWINGSCALER;
+			YBUFFER = -zoomRemapped.w * DRAWINGSCALER;
+			std::cout << "targetwidth " << targetWidth << std::endl;
+			std::cout << "targethight " << targetHigth << std::endl;
+			std::cout << "YBUFFER " << YBUFFER << std::endl;
+			std::cout << "ZBUFFER " << ZBUFFER << std::endl;
+
+			for (auto const& triangle : triangleList) {
+				renderer.renderLine({ ZBUFFER + triangle.getP1().z * DRAWINGSCALER , h - YBUFFER - triangle.getP1().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP2().z * DRAWINGSCALER, h - YBUFFER - triangle.getP2().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
+				renderer.renderLine({ ZBUFFER + triangle.getP2().z * DRAWINGSCALER , h - YBUFFER - triangle.getP2().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP3().z * DRAWINGSCALER, h - YBUFFER - triangle.getP3().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
+				renderer.renderLine({ ZBUFFER + triangle.getP3().z * DRAWINGSCALER , h - YBUFFER - triangle.getP3().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP1().z * DRAWINGSCALER, h - YBUFFER - triangle.getP1().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
+			}
 		}
+		else {
+
+			for (auto const& triangle : triangleList) {
+				renderer.renderLine({ ZBUFFER + triangle.getP1().z * DRAWINGSCALER , h - YBUFFER - triangle.getP1().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP2().z * DRAWINGSCALER, h - YBUFFER - triangle.getP2().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
+				renderer.renderLine({ ZBUFFER + triangle.getP2().z * DRAWINGSCALER , h - YBUFFER - triangle.getP2().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP3().z * DRAWINGSCALER, h - YBUFFER - triangle.getP3().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
+				renderer.renderLine({ ZBUFFER + triangle.getP3().z * DRAWINGSCALER , h - YBUFFER - triangle.getP3().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP1().z * DRAWINGSCALER, h - YBUFFER - triangle.getP1().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
+			}
+		}
+		renderer.updateWindowMetrics(w, h);
 	}
 	else {
-
-		for (auto const& triangle : triangleList) {
-			renderer.renderLine({ ZBUFFER + triangle.getP1().z * DRAWINGSCALER , h - YBUFFER - triangle.getP1().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP2().z * DRAWINGSCALER, h - YBUFFER - triangle.getP2().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
-			renderer.renderLine({ ZBUFFER + triangle.getP2().z * DRAWINGSCALER , h - YBUFFER - triangle.getP2().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP3().z * DRAWINGSCALER, h - YBUFFER - triangle.getP3().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
-			renderer.renderLine({ ZBUFFER + triangle.getP3().z * DRAWINGSCALER , h - YBUFFER - triangle.getP3().y * DRAWINGSCALER }, { ZBUFFER + triangle.getP1().z * DRAWINGSCALER, h - YBUFFER - triangle.getP1().y * DRAWINGSCALER }, Colors_White, LINEWIDTH);
-		}
+		renderer.updateWindowMetrics(w, h);
 	}
+	sceneChange = false;
 
 
 
@@ -246,11 +274,12 @@ bool gameLogic(float deltaTime)
 	if (platform::isButtonTyped(platform::Button::Enter))
 	{
 		std::cout << "zoom" << std::endl;
-		zoom!=zoom;
+		zoom=!zoom;
+		sceneChange = true;
 	}
 
 	gameData.rectPos = glm::clamp(gameData.rectPos, glm::vec2{ 0,0 }, glm::vec2{ w - 100,h - 100 });
-	renderer.renderRectangle({ gameData.rectPos, 100, 100 }, Colors_Blue);
+	//renderer.renderRectangle({ gameData.rectPos, 100, 100 }, Colors_Blue);
 
 	//renderer.renderRectangle({ 100, 100, 1, 100 }, Colors_White);
 

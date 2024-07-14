@@ -98,3 +98,7 @@ target_include_directories("${CMAKE_PROJECT_NAME}" PUBLIC "${CMAKE_CURRENT_SOURC
 #enet not working yet on linux for some reason
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE glm glfw 
 	glad stb_image stb_truetype gl2d raudio imgui safeSave profilerLib glui)
+
+#I added this to bring in windows explorer
+#target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE comdlg32)
+

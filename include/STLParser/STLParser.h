@@ -45,6 +45,15 @@ namespace STLParser {
 		double minZ{};
 	};
 
+	void resetLimits(stlLimits& limits) {
+		limits.maxX = 0;
+		limits.minX = 0;
+		limits.maxY = 0;
+		limits.minY = 0;
+		limits.maxZ = 0;
+		limits.minZ = 0;		
+	}
+
 	void updateLimits(stlLimits& limits,const xyz& point) {
 		//I considered maxval=max(maxval,newval) though that would be double the opperations on average..
 		if (point.x > limits.maxX) {

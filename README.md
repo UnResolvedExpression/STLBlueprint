@@ -1,63 +1,17 @@
-# cmakeSetup
+STL Blueprint View
 
----
+I wanted a blueprint style view for my ships in From The Depths. Bring your ship out of the game or other STL into a neat Graphic.
+![](./photosForREADME/simpleShipBluePrint.png?raw=true )
+You will be greeted by a simple ship. Press O to open an explorer prompt and find your own STL.
+![](./photosForREADME/openDialog.png?raw=true )
+Fit the application to your screen or drag it to any size you want.
+Use left click and right click to section off a rectangular area of your object.
+![](./photosForREADME/pointSelection.png?raw=true )
+You may hide the colored markers or show them using space bar.
+Press enter to rerender your object zoomed into the area of interest. Another Enter keypress returns you to the zoomed our view from which you can zoom in again.
+![](./photosForREADME/smallMissiles.png?raw=true )
 
-## What is it?
-
-This is a CMake setup that loads glfw, OpenGL, stb_image, stb_truetype, and a custom 2d library. It works both on Windows and Linux.
-
-## Why use cmakeSetup?
-
-All I do is configure the project in a good way. It is cross-platform, easy to add libraries, and the input and window opening are implemented. All the rest is up to you, with no weird abstractions, you get the init() update(), and close() functions and you do whatever you want with them.
-
-
-![](https://github.com/meemknight/photos/blob/master/cmakeSetup1.png)
----
-
-  [FULL EXAMPLE VIDEO!](https://www.youtube.com/watch?v=zJoXMfCI9LM)
-  
-  [LONGER VERSION!!](https://www.youtube.com/watch?v=XOs2qynEmNE)
-  
-  [VIDEO ABOUT THE SETUP](https://www.youtube.com/watch?v=K8f73k9HM8M)
-
----
-
-<p>Opening the Solution:</p> 
-
-<img src="https://raw.githubusercontent.com/meemknight/photos/master/llge1.gif" width="350">
-
-Or
-
-<img src="https://raw.githubusercontent.com/meemknight/photos/master/llge2.gif" width="500">
-
-Running the setup
-
-Go to CMakeLists.txt, <kbd>CTRL + S</kbd> to make sure the solution was built.
-
-Then, from this dropdown select mygame.exe
-
-<img src="https://raw.githubusercontent.com/meemknight/photos/master/llge3.gif" width="200">
-
-<kbd>Ctrl + F5</kbd> to build (<kbd>F5</kbd> oppens the debugger, you usually want to press <kbd>Ctrl + F5</kbd> because it oppens faster like this.
-
-<p>Adding files:<br>
-You should add .cpp in src/gameLayer and .h in include/gameLayer. Whenever you add a new file CMake will ask you if you want to add that thing, say NO every time! I am already adding all of the things.
-If you accidentally say YES, just remove that file from the CMake.lists
-</p>
-
-<p>Refreshing your changes:<br>
-After you add a file, the changes should be automatically added but if you want to be sure, you can refresh changes by saving the CMake file. If you want to make a hard refresh (you might have to do that sometimes) close Visual Studio, delete the out folder, reopen VS, <kbd>CTRL + S</kbd> on CMakeLists.txt</p>
-
-
-# How to use:
-
-  gameLayer.cpp has the game main loop. Add your files in scr/gamelayer and include/gamelayer.
-  Look at the example provided to see how to acces user input.
-  Also you have to use the RESOURCES_PATH macro to get to your assets path.
-
-  [FULL EXAMPLE VIDEO!](https://www.youtube.com/watch?v=zJoXMfCI9LM)
-
-
-# IMPORTANT!
-  To ship the game: 
-  In Cmakelists.txt, set the PRODUCTION_BUILD flag to ON to build a shippable version of your game. This will change the file paths to be relative to your exe (RESOURCES_PATH macro), will remove the console, and also will change the aserts to not allow people to debug them. To make sure the changes take effect I recommend deleting the out folder to make a new clean build!
+This application is built on top of https://github.com/meemknight/cmakeSetup , a repo meant to simplify 2D game creation.
+You could extract the class which handles the STL in STLParser.h and read function in gameLayer.cpp should that be what your own project needs.
+I made an excersise out of sticking to the style of this repo and keeping my work to gameLayer.cpp.
+Feel free to make whatever you wish from this repo. Send me the blueprint view of your Flag Ships :)

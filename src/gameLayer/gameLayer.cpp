@@ -15,7 +15,9 @@
 #include <string>
 
 #include "STLParser/STLParser.h"
-
+//#include <shellapi.h>
+#include <windows.h>
+#include <commdlg.h>
 struct GameData
 {
 	glm::vec2 rectPos = {100,100};
@@ -30,23 +32,53 @@ STLParser::stlLimits limits{};
 glm::vec4 zoomCords = { 0,0,0,0 };
 bool zoom{ false };
 bool sceneChange{ true };
-
-bool initGame()
-{
-	//initializing stuff for the renderer
-	gl2d::init();
-	renderer.create();
-
-	//loading the saved data. Loading an entire structure like this makes savind game data very easy.
-	platform::readEntireFile(RESOURCES_PATH "gameData.data", &gameData, sizeof(GameData));
+bool viewZoomPoints{ true };
+glm::vec2 windSize = { 0,0 };// it would be better to callback, though that is in glfwMain.cpp and I only want to modify this file
+std::string stlPath = "D:/STLBlueprint/cmakeSetup/resources/Antliontext-2024-06-21_12-20-09-PM.stl";
 
 
- #pragma region RenderSTL
+std::string pickSTL(){
 
+	// Initialize OPENFILENAME
+	//This was modified from gpt 4o
+	//	I got lost in some win7 documentation until I tried asking the AI...
+	//I learned that the test program I made was unicode, but this project is ASNI
+	//I chose to keep it ASNI and adjust acordingly i.e. wchar_t -> char ; L"sdfa" -> "asdfa"
+	OPENFILENAME ofn;
+	char szFile[260] = { 0 };       // Buffer for the file name
+
+	// Initialize the structure with zeros
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = NULL;
+	ofn.lpstrFile = szFile;
+	ofn.nMaxFile = sizeof(szFile) / sizeof(szFile[0]);
+	ofn.lpstrFilter = "All Files\0*.*\0Text Files\0*.TXT\0";
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFileTitle = NULL;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = NULL;
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+	// Display the Open dialog box
+	if (GetOpenFileName(&ofn) == TRUE) {
+		std::wcout << L"Selected file: " << ofn.lpstrFile << std::endl;
+		return ofn.lpstrFile;
+	}
+	else {
+		std::wcout << L"File selection canceled." << std::endl;
+		return "";
+	}
+
+}
+
+void readSTL() {
+	triangleList= std::list<STLParser::Triangle>(); //we get rid of the previously loaded stl
+	STLParser::resetLimits(limits);
 	//we will save edges to an array incase we want to get rid of some later
 	std::cout << "init" << std::endl;
-	std::string stlPath = "D:/STLBlueprint/cmakeSetup/resources/Tameem class Frigatetext-2024-04-23_04-09-21-PM.stl";
-	std::string testPath= "D:/STLBlueprint/cmakeSetup/src/gameLayer/test.stl";
+
+	//std::string testPath= "D:/STLBlueprint/cmakeSetup/src/gameLayer/test.stl";
 	std::ifstream fin;
 	fin.open(stlPath);
 	if (!fin)
@@ -87,7 +119,7 @@ bool initGame()
 			//p1
 			std::getline(fin, line);
 			std::getline(fin, line);
-			counter=0;
+			counter = 0;
 			pos = line.find(delimiter);
 			line.erase(0, pos + delimiter.length());
 			while ((pos = line.find(delimiter)) != std::string::npos) {
@@ -145,6 +177,23 @@ bool initGame()
 		}
 		*/
 	}
+}
+
+
+bool initGame()
+{
+	//initializing stuff for the renderer
+	gl2d::init();
+	renderer.create();
+
+	//loading the saved data. Loading an entire structure like this makes savind game data very easy.
+	platform::readEntireFile(RESOURCES_PATH "gameData.data", &gameData, sizeof(GameData));
+
+
+ #pragma region RenderSTL
+
+	readSTL();
+	
 #pragma endregion
 
 
@@ -174,7 +223,14 @@ bool gameLogic(float deltaTime)
 
 	glViewport(0, 0, w, h);
 
+	if (windSize.x != w || windSize.y != h) {
+		sceneChange = true;
+		windSize.x = w;
+		windSize.y = h;
+	}
+
 	if (sceneChange) {
+		
 		glClear(GL_COLOR_BUFFER_BIT); //clear screen
 		renderer.updateWindowMetrics(w, h);
 		double targetWidth{ w / (limits.maxZ - limits.minZ) };
@@ -209,7 +265,7 @@ bool gameLogic(float deltaTime)
 			targetHigth = h / (zoomRemapped.y - zoomRemapped.w);
 			DRAWINGSCALER = min(abs(targetWidth),abs(targetHigth));
 			ZBUFFER = -zoomRemapped.x * DRAWINGSCALER;
-			YBUFFER = -zoomRemapped.w * DRAWINGSCALER;
+			YBUFFER = zoomRemapped.w * DRAWINGSCALER;
 			std::cout << "targetwidth " << targetWidth << std::endl;
 			std::cout << "targethight " << targetHigth << std::endl;
 			std::cout << "YBUFFER " << YBUFFER << std::endl;
@@ -263,37 +319,65 @@ bool gameLogic(float deltaTime)
 		zoomCords.x = tempvec.x;
 		zoomCords.y = tempvec.y;//uses xyzw
 		std::cout << zoomCords.x << " " << zoomCords.y << std::endl;
+		if(viewZoomPoints)
+			renderer.renderRectangle({zoomCords.x,zoomCords.y, 10, 10 }, Colors_Red);
 	}
 	if (platform::isRMousePressed()) {//left mouse can be for first point, etc. Then user does not have to worry about mistakes
 		glm::ivec2 tempvec = platform::getRelMousePosition();
 		zoomCords.z = tempvec.x;
 		zoomCords.w = tempvec.y;//uses xyzw
 		std::cout << zoomCords.z << " " << zoomCords.w << std::endl;
-
+		if(viewZoomPoints)
+			renderer.renderRectangle({ zoomCords.z,zoomCords.w, 10, 10 }, Colors_Green);
 	}
 	if (platform::isButtonTyped(platform::Button::Enter))
 	{
 		std::cout << "zoom" << std::endl;
 		zoom=!zoom;
 		sceneChange = true;
+		if (zoom) {
+			viewZoomPoints = false;
+		}
+		else {
+			viewZoomPoints = true;
+		}
+		
+	}
+	if (platform::isButtonTyped(platform::Button::Space))
+	{ //to banish the zoom points
+		std::cout << "viewzoompoints" << std::endl;
+		viewZoomPoints = !viewZoomPoints;
+		sceneChange = true;
+	}
+	if (platform::isButtonTyped(platform::Button::O)) {
+		//ShellExecuteA(NULL, "open", "C:\\",NULL, NULL, SW_SHOWDEFAULT );
+		std::string tmp = pickSTL();
+		if (!tmp.empty()) {
+			stlPath = tmp;
+			readSTL();
+			sceneChange = true;
+			viewZoomPoints = false;
+			zoom = false;
+		}
 	}
 
-	gameData.rectPos = glm::clamp(gameData.rectPos, glm::vec2{ 0,0 }, glm::vec2{ w - 100,h - 100 });
+	//gameData.rectPos = glm::clamp(gameData.rectPos, glm::vec2{ 0,0 }, glm::vec2{ w - 100,h - 100 });
 	//renderer.renderRectangle({ gameData.rectPos, 100, 100 }, Colors_Blue);
 
 	//renderer.renderRectangle({ 100, 100, 1, 100 }, Colors_White);
 
+	
 	
 
 	renderer.flush();
 
 
 	//ImGui::ShowDemoWindow();
-	ImGui::Begin("Test Imgui");
+	//ImGui::Begin("Test Imgui");
 
-	ImGui::DragFloat2("Positions", &gameData.rectPos[0]);
+	//ImGui::DragFloat2("Positions", &gameData.rectPos[0]);
 
-	ImGui::End();
+	//ImGui::End();
 
 	return true;
 #pragma endregion
